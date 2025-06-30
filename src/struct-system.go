@@ -134,6 +134,14 @@ type DataStruct struct {
 		StreamingURLS map[string]StreamInfo
 		XMLTV         map[string]XMLTV
 
+		// theTVDB API Cache
+		TVDB struct {
+			TitleToID   map[string]string // Program title → theTVDB series/movie ID mapping
+			ContentType map[string]string // Title → content type (series/movie)
+			Posters     map[string]string // Series/Movie ID → poster URL mapping
+			Negative    map[string]int64  // Failed searches with timestamp
+		}
+
 		Streams struct {
 			Active []string
 		}
@@ -331,6 +339,13 @@ type SettingsStruct struct {
 	XepgReplaceMissingImages  bool                  `json:"xepg.replace.missing.images"`
 	XepgReplaceChannelTitle   bool                  `json:"xepg.replace.channel.title"`
 	ThreadfinAutoUpdate       bool                  `json:"ThreadfinAutoUpdate"`
+	// theTVDB API Integration Settings
+	TvdbApiKey                string                `json:"tvdb.api.key"`
+	TvdbEnabled               bool                  `json:"tvdb.enabled"`
+	TvdbCacheExpiry           int                   `json:"tvdb.cache.expiry"`
+	TvdbFallbackToChannelLogo bool                  `json:"tvdb.fallback.channel.logo"`
+	TvdbPosterType            string                `json:"tvdb.poster.type"`
+	TvdbEpisodePosters        bool                  `json:"tvdb.episode.posters"`
 	StoreBufferInRAM          bool                  `json:"storeBufferInRAM"`
 	ForceHttps                bool                  `json:"forceHttps"`
 	HttpsPort                 int                   `json:"httpsPort"`

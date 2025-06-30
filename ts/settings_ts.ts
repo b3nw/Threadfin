@@ -599,6 +599,95 @@ class SettingsCategory {
         setting.appendChild(tdRight)
         break
 
+      // theTVDB API Settings
+      case "tvdb.api.key":
+        var tdLeft = document.createElement("TD")
+        tdLeft.innerHTML = "{{.settings.tvdbApiKey.title}}" + ":"
+
+        var tdRight = document.createElement("TD")
+        var input = content.createInput("text", "tvdb.api.key", data)
+        input.setAttribute("placeholder", "{{.settings.tvdbApiKey.placeholder}}")
+        input.setAttribute("onchange", "javascript: this.className = 'changed'")
+        tdRight.appendChild(input)
+
+        setting.appendChild(tdLeft)
+        setting.appendChild(tdRight)
+        break
+
+      case "tvdb.enabled":
+        var tdLeft = document.createElement("TD")
+        tdLeft.innerHTML = "{{.settings.tvdbEnabled.title}}" + ":"
+
+        var tdRight = document.createElement("TD")
+        var input = content.createCheckbox("tvdb.enabled")
+        input.checked = data
+        input.setAttribute("onchange", "javascript: this.className = 'changed'")
+        tdRight.appendChild(input)
+
+        setting.appendChild(tdLeft)
+        setting.appendChild(tdRight)
+        break
+
+      case "tvdb.cache.expiry":
+        var tdLeft = document.createElement("TD")
+        tdLeft.innerHTML = "{{.settings.tvdbCacheExpiry.title}}" + ":"
+
+        var tdRight = document.createElement("TD")
+        var text: any[] = ["6 Hours", "12 Hours", "24 Hours", "48 Hours", "72 Hours"]
+        var values: any[] = ["6", "12", "24", "48", "72"]
+
+        var select = content.createSelect(text, values, data, "tvdb.cache.expiry")
+        select.setAttribute("onchange", "javascript: this.className = 'changed'")
+        tdRight.appendChild(select)
+
+        setting.appendChild(tdLeft)
+        setting.appendChild(tdRight)
+        break
+
+      case "tvdb.fallback.channel.logo":
+        var tdLeft = document.createElement("TD")
+        tdLeft.innerHTML = "{{.settings.tvdbFallbackToChannelLogo.title}}" + ":"
+
+        var tdRight = document.createElement("TD")
+        var input = content.createCheckbox("tvdb.fallback.channel.logo")
+        input.checked = data
+        input.setAttribute("onchange", "javascript: this.className = 'changed'")
+        tdRight.appendChild(input)
+
+        setting.appendChild(tdLeft)
+        setting.appendChild(tdRight)
+        break
+
+      case "tvdb.poster.type":
+        var tdLeft = document.createElement("TD")
+        tdLeft.innerHTML = "{{.settings.tvdbPosterType.title}}" + ":"
+
+        var tdRight = document.createElement("TD")
+        var text: any[] = ["Poster", "Fanart", "Banner"]
+        var values: any[] = ["poster", "fanart", "banner"]
+
+        var select = content.createSelect(text, values, data, "tvdb.poster.type")
+        select.setAttribute("onchange", "javascript: this.className = 'changed'")
+        tdRight.appendChild(select)
+
+        setting.appendChild(tdLeft)
+        setting.appendChild(tdRight)
+        break
+
+      case "tvdb.episode.posters":
+        var tdLeft = document.createElement("TD")
+        tdLeft.innerHTML = "{{.settings.tvdbEpisodePosters.title}}" + ":"
+
+        var tdRight = document.createElement("TD")
+        var input = content.createCheckbox("tvdb.episode.posters")
+        input.checked = data
+        input.setAttribute("onchange", "javascript: this.className = 'changed'")
+        tdRight.appendChild(input)
+
+        setting.appendChild(tdLeft)
+        setting.appendChild(tdRight)
+        break
+
     }
 
     return setting
@@ -760,6 +849,31 @@ class SettingsCategory {
 
       case "udpxy":
         text = "{{.settings.udpxy.description}}"
+        break
+
+      // theTVDB API Settings descriptions
+      case "tvdb.api.key":
+        text = "{{.settings.tvdbApiKey.description}}"
+        break
+
+      case "tvdb.enabled":
+        text = "{{.settings.tvdbEnabled.description}}"
+        break
+
+      case "tvdb.cache.expiry":
+        text = "{{.settings.tvdbCacheExpiry.description}}"
+        break
+
+      case "tvdb.fallback.channel.logo":
+        text = "{{.settings.tvdbFallbackToChannelLogo.description}}"
+        break
+
+      case "tvdb.poster.type":
+        text = "{{.settings.tvdbPosterType.description}}"
+        break
+
+      case "tvdb.episode.posters":
+        text = "{{.settings.tvdbEpisodePosters.description}}"
         break
 
       default:

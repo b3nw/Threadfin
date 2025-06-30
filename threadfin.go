@@ -79,7 +79,7 @@ func main() {
 	system.DBVersion = DBVersion
 	system.GitHub = GitHub
 	system.Name = Name
-	system.Version = strings.Join(build[0:len(build)-1], ".")
+	system.Version = strings.Join(build[0:len(build)-1], ".") + "+theTVDB"
 
 	// Panic !!!
 	defer func() {

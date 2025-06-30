@@ -45,6 +45,13 @@ type RequestStruct struct {
 		XepgReplaceMissingImages *bool     `json:"xepg.replace.missing.images,omitempty"`
 		XepgReplaceChannelTitle  *bool     `json:"xepg.replace.channel.title,omitempty"`
 		ThreadfinAutoUpdate      *bool     `json:"ThreadfinAutoUpdate,omitempty"`
+		// theTVDB API Integration Fields
+		TvdbApiKey                *string   `json:"tvdb.api.key,omitempty"`
+		TvdbEnabled               *bool     `json:"tvdb.enabled,omitempty"`
+		TvdbCacheExpiry           *int      `json:"tvdb.cache.expiry,omitempty"`
+		TvdbFallbackToChannelLogo *bool     `json:"tvdb.fallback.channel.logo,omitempty"`
+		TvdbPosterType            *string   `json:"tvdb.poster.type,omitempty"`
+		TvdbEpisodePosters        *bool     `json:"tvdb.episode.posters,omitempty"`
 		SchemeM3U                *string   `json:"scheme.m3u,omitempty"`
 		SchemeXML                *string   `json:"scheme.xml,omitempty"`
 		StoreBufferInRAM         *bool     `json:"storeBufferInRAM,omitempty"`

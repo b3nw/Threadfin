@@ -169,6 +169,14 @@ func loadSettings() (settings SettingsStruct, err error) {
 	}
 	defaults["temp.path"] = System.Folder.Temp
 
+	// theTVDB API Integration defaults
+	defaults["tvdb.api.key"] = ""
+	defaults["tvdb.enabled"] = false
+	defaults["tvdb.cache.expiry"] = 24
+	defaults["tvdb.fallback.channel.logo"] = true
+	defaults["tvdb.poster.type"] = "poster"
+	defaults["tvdb.episode.posters"] = false
+
 	// Default Werte setzen
 	for key, value := range defaults {
 		if _, ok := settingsMap[key]; !ok {

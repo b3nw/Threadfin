@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/avfs/avfs"
 	"golang.org/x/text/cases"
@@ -15,7 +16,7 @@ import (
 // System : Beinhaltet alle Systeminformationen
 var System SystemStruct
 
-// WebScreenLog : Logs werden im RAM gespeichert und für das Webinterface bereitgestellt
+// WebScreenLog : RAM gespeichert und für das Webinterface bereitgestellt
 var WebScreenLog WebScreenLogStruct
 
 // Settings : Inhalt der settings.json
@@ -252,6 +253,28 @@ func StartSystem(updateProviderFiles bool) (err error) {
 	showInfo(fmt.Sprintf("EPG Source:%s", Settings.EpgSource))
 	showInfo(fmt.Sprintf("Plex Channel Limit:%d", System.PlexChannelLimit))
 	showInfo(fmt.Sprintf("Unfiltered Chan. Limit:%d", System.UnfilteredChannelLimit))
+
+	// Initialize theTVDB client if enabled
+	if Settings.TvdbEnabled && Settings.TvdbApiKey != "" {
+		err = InitializeTVDB(Settings.TvdbApiKey)
+		if err != nil {
+			ShowError(err, 000)
+		} else {
+			showInfo("theTVDB: Client initialized successfully")
+
+			// Start periodic cache cleanup (every 6 hours)
+			go func() {
+				ticker := time.NewTicker(6 * time.Hour)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-ticker.C:
+						cleanupExpiredTVDBCache()
+					}
+				}
+			}()
+		}
+	}
 
 	// Providerdaten aktualisieren
 	if len(Settings.Files.M3U) > 0 && Settings.FilesUpdate == true || updateProviderFiles == true {

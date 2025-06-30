@@ -61,7 +61,18 @@ func buildXEPG(background bool) {
 
 	var err error
 
-	Data.Cache.Images, err = imgcache.New(System.Folder.ImagesCache, fmt.Sprintf("%s://%s/images/", System.ServerProtocol.WEB, System.Domain), Settings.CacheImages)
+	// Determine the correct domain and protocol for the image cache base URL
+	var cacheBaseURL string
+	if Settings.ForceHttps && Settings.HttpsThreadfinDomain != "" {
+		cacheBaseURL = fmt.Sprintf("https://%s/images/", Settings.HttpsThreadfinDomain)
+	} else if Settings.HttpThreadfinDomain != "" {
+		cacheBaseURL = fmt.Sprintf("http://%s:%s/images/", Settings.HttpThreadfinDomain, Settings.Port)
+	} else {
+		// Fallback to System.Domain if no specific domain is configured
+		cacheBaseURL = fmt.Sprintf("%s://%s/images/", System.ServerProtocol.WEB, System.Domain)
+	}
+
+	Data.Cache.Images, err = imgcache.New(System.Folder.ImagesCache, cacheBaseURL, Settings.CacheImages, System.Flag.Debug)
 	if err != nil {
 		ShowError(err, 0)
 	}
@@ -94,7 +105,7 @@ func buildXEPG(background bool) {
 						showInfo(fmt.Sprintf("Image Caching:Images are cached (%d)", len(Data.Cache.Images.Queue)))
 
 						Data.Cache.Images.Image.Caching()
-						Data.Cache.Images.Image.Remove()
+						// Data.Cache.Images.Image.Remove() // Disabled to preserve TheTVDB posters
 						showInfo("Image Caching:Done")
 
 						createXMLTVFile()
@@ -143,7 +154,7 @@ func buildXEPG(background bool) {
 						showInfo(fmt.Sprintf("Image Caching:Images are cached (%d)", len(Data.Cache.Images.Queue)))
 
 						Data.Cache.Images.Image.Caching()
-						Data.Cache.Images.Image.Remove()
+						// Data.Cache.Images.Image.Remove() // Disabled to preserve TheTVDB posters
 						showInfo("Image Caching:Done")
 
 						createXMLTVFile()
@@ -177,6 +188,11 @@ func buildXEPG(background bool) {
 		getLineup()
 		System.ScanInProgress = 0
 
+	}
+
+	// Clear the new posters flag since we just rebuilt everything
+	if tvdbClient != nil {
+		checkAndClearNewPosters()
 	}
 
 }
@@ -916,6 +932,11 @@ func createXMLTVFile() (err error) {
 
 		}
 
+		// Report the number of images found in cache
+		if len(Data.Cache.ImagesCache) > 0 {
+			showInfo(fmt.Sprintf("Image Cache: Found %d images in cache", len(Data.Cache.ImagesCache)))
+		}
+
 	}
 
 	if len(Data.XMLTV.Files) == 0 && len(Data.Streams.Active) == 0 {
@@ -1401,14 +1422,88 @@ func getPoster(program *Program, xmltvProgram *Program, xepgChannel XEPGChannelS
 		program.Poster = append(program.Poster, poster)
 	}
 
-	if Settings.XepgReplaceMissingImages {
+	// TheTVDB poster lookup - independent of XepgReplaceMissingImages setting
+	// This runs when TheTVDB is enabled, regardless of missing image replacement setting
+	if Settings.TvdbEnabled && Settings.TvdbApiKey != "" && tvdbClient != nil {
+		var title string
+		if len(program.Title) > 0 {
+			title = program.Title[0].Value
+		}
 
-		if len(xmltvProgram.Poster) == 0 {
+		if title != "" {
+			// Quick cache check only - no blocking API calls
+			cachedURL := GetCachedPosterURL(title)
+			if cachedURL != "" {
+				var poster Poster
+				poster.Src = cachedURL // Already processed through image cache
+				program.Poster = append(program.Poster, poster)
+				if System.Dev {
+					showInfo(fmt.Sprintf("theTVDB: Using cached poster for '%s'", title))
+				}
+				return // Found cached theTVDB poster, no need to fallback
+			}
+
+			// Cache miss - check various conditions before starting async lookup
+			if System.Dev {
+				showInfo(fmt.Sprintf("theTVDB: Cache miss for '%s' - checking deduplication", title))
+			}
+
+			// Check if this lookup recently failed
+			if isFailedLookup(title) {
+				if System.Dev {
+					showInfo(fmt.Sprintf("theTVDB: Skipping '%s' - recently failed lookup", title))
+				}
+			} else if isRecentSearch(title) {
+				if System.Dev {
+					showInfo(fmt.Sprintf("theTVDB: Skipping '%s' - recently searched", title))
+				}
+			} else if !markSearchInProgress(title) {
+				if System.Dev {
+					showInfo(fmt.Sprintf("theTVDB: Skipping '%s' - search already in progress", title))
+				}
+			} else {
+				// All checks passed - start the async lookup
+				if System.Dev {
+					showInfo(fmt.Sprintf("theTVDB: Starting async lookup for '%s'", title))
+				}
+
+				// Start async lookup but don't block EPG generation
+				go func(progTitle string, progRef *Program, channel XEPGChannelStruct) {
+					// Acquire goroutine limiter token
+					<-globalGoroutineLimiter
+					defer func() {
+						// Return token after processing
+						globalGoroutineLimiter <- struct{}{}
+						// Mark search as complete
+						markSearchComplete(progTitle)
+					}()
+
+					if System.Dev {
+						showInfo(fmt.Sprintf("theTVDB: Starting async poster lookup for '%s'", progTitle))
+					}
+					tvdbPosterURL := GetTVDBPosterForProgram(progRef, channel)
+					if tvdbPosterURL != "" {
+						// Poster found asynchronously - it will be available for next EPG build
+						// The image is already queued for download via setCachedPosterURL
+					}
+
+					// Mark this title as recently searched after completion
+					markRecentSearch(progTitle)
+				}(title, program, xepgChannel)
+			}
+		}
+	}
+
+	// Fallback to channel logo - only when XepgReplaceMissingImages is enabled
+	// AND we don't have any posters yet (neither from XMLTV nor from TheTVDB cache)
+	if Settings.XepgReplaceMissingImages && len(program.Poster) == 0 {
+		// Use fallback to channel logo if no poster available
+		// This ensures EPG generation isn't blocked and users get some poster
+		if Settings.TvdbFallbackToChannelLogo {
 			var poster Poster
 			poster.Src = imgc.Image.GetURL(xepgChannel.TvgLogo, Settings.HttpThreadfinDomain, Settings.Port, Settings.ForceHttps, Settings.HttpsPort, Settings.HttpsThreadfinDomain)
 			program.Poster = append(program.Poster, poster)
 		}
-
 	}
 
 }

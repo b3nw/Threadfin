@@ -71,7 +71,6 @@ func maintenance() {
 				}
 
 			}
-
 			// Update Threadfin (Binary)
 			systemMutex.Lock()
 			if System.TimeForAutoUpdate == t.Format("1504") {
@@ -79,6 +78,30 @@ func maintenance() {
 				BinaryUpdate()
 			} else {
 				systemMutex.Unlock()
+			}
+
+			// Simple hourly check for new theTVDB posters (at minute 15 of each hour)
+			if Settings.TvdbEnabled && t.Minute() == 15 {
+				if checkAndClearNewPosters() {
+					go func() {
+						// Only regenerate if no scan is in progress
+						systemMutex.Lock()
+						if System.ScanInProgress == 0 {
+							systemMutex.Unlock()
+
+							showInfo("theTVDB: New posters available - regenerating EPG")
+
+							// Quick EPG regeneration (only XMLTV files)
+							createXMLTVFile()
+							createM3UFile()
+
+							showInfo("theTVDB: EPG regeneration complete")
+						} else {
+							systemMutex.Unlock()
+							showInfo("theTVDB: EPG regeneration skipped - scan in progress")
+						}
+					}()
+				}
 			}
 
 		} else {
@@ -89,7 +112,6 @@ func maintenance() {
 
 	}
 
-	return
 }
 
 func randomTime(min, max int) int {

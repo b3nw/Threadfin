@@ -570,6 +570,31 @@
     "authenticationAPI": {
       "title": "API Authentication",
       "description": "Access to the API interface is only possible with authentication."
+    },
+    "tvdbApiKey": {
+      "title": "theTVDB API Key",
+      "description": "Your theTVDB API key. Sign up at <a href='https://thetvdb.com/api-information' target='_blank'>theTVDB.com</a> to get an API key.",
+      "placeholder": "Enter your theTVDB API key"
+    },
+    "tvdbEnabled": {
+      "title": "Enable theTVDB Integration",
+      "description": "Enable fetching missing program posters from theTVDB API. Requires a valid API key."
+    },
+    "tvdbCacheExpiry": {
+      "title": "theTVDB Cache Expiry",
+      "description": "How long to cache theTVDB API responses. Longer cache times reduce API usage but may delay updates."
+    },
+    "tvdbFallbackToChannelLogo": {
+      "title": "Fallback to Channel Logo",
+      "description": "If theTVDB poster lookup fails, fallback to using the channel logo as program image."
+    },
+    "tvdbPosterType": {
+      "title": "Preferred Poster Type",
+      "description": "Type of image to fetch from theTVDB. Poster is recommended for program images."
+    },
+    "tvdbEpisodePosters": {
+      "title": "Enable Episode-Specific Posters",
+      "description": "Fetch episode-specific artwork when available. This is a future enhancement and currently not implemented."
     }
   },
   "wizard": {
