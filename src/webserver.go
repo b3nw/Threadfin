@@ -40,7 +40,6 @@ func StartWebserver() (err error) {
 	http.HandleFunc("/data_images/", DataImages)
 	http.HandleFunc("/ppv/enable", enablePPV)
 	http.HandleFunc("/ppv/disable", disablePPV)
-	http.HandleFunc("/auto/", Auto)
 
 	systemMutex.Lock()
 	ips := len(System.IPAddressesV4) + len(System.IPAddressesV6) - 1
@@ -134,11 +133,11 @@ func Stream(w http.ResponseWriter, r *http.Request) {
 
 	systemMutex.Lock()
 	forceHttps := Settings.ForceHttps
-    noStreamHttps := Settings.ExcludeStreamHttps
+	noStreamHttps := Settings.ExcludeStreamHttps
 	systemMutex.Unlock()
 
 	// Dont Change Source M3Us to use HTTPs when forceHttps set and Exclude Streams from https
-    if forceHttps && noStreamHttps == false {
+	if forceHttps && noStreamHttps == false {
 		u, err := url.Parse(streamInfo.URL)
 		if err == nil {
 			u.Scheme = "https"
@@ -184,7 +183,7 @@ func Stream(w http.ResponseWriter, r *http.Request) {
 	if playListMap, ok := playListInterface.(map[string]interface{}); ok {
 		if bufferValue, exists := playListMap["buffer"]; exists && bufferValue != nil {
 			if buffer, ok := bufferValue.(string); ok {
-				playListBuffer = buffer
+				playListBuffer = normalizeLegacyBufferMode(buffer)
 			}
 		}
 	}
@@ -193,15 +192,6 @@ func Stream(w http.ResponseWriter, r *http.Request) {
 	switch playListBuffer {
 	case "-":
 		showInfo(fmt.Sprintf("Buffer:false [%s]", playListBuffer))
-	case "threadfin":
-		if strings.Index(streamInfo.URL, "rtsp://") != -1 || strings.Index(streamInfo.URL, "rtp://") != -1 {
-			err = errors.New("RTSP and RTP streams are not supported")
-			ShowError(err, 2004)
-			showInfo("Streaming URL:" + streamInfo.URL)
-			http.Redirect(w, r, streamInfo.URL, 302)
-			return
-		}
-		showInfo(fmt.Sprintf("Buffer:true [%s]", playListBuffer))
 	default:
 		showInfo(fmt.Sprintf("Buffer:true [%s]", playListBuffer))
 	}
@@ -219,13 +209,6 @@ func Stream(w http.ResponseWriter, r *http.Request) {
 	default:
 		bufferingStream(streamInfo.PlaylistID, streamInfo.URL, streamInfo.BackupChannel1, streamInfo.BackupChannel2, streamInfo.BackupChannel3, streamInfo.Name, w, r)
 	}
-	return
-}
-
-// Auto : HDHR routing (wird derzeit nicht benutzt)
-func Auto(w http.ResponseWriter, r *http.Request) {
-	var channelID = strings.Replace(r.RequestURI, "/auto/v", "", 1)
-	fmt.Println(channelID)
 	return
 }
 
@@ -458,25 +441,20 @@ func WS(w http.ResponseWriter, r *http.Request) {
 		switch request.Cmd {
 		// Data read commands
 		case "getServerConfig":
-			// response.Config = Settings
 
 		case "updateLog":
 			response = setDefaultResponseData(response, false)
 			if err = conn.WriteJSON(response); err != nil {
 				ShowError(err, 1022)
-			} else {
-				return
-				break
 			}
 			return
 
 		case "loadFiles":
-			// response.Response = Settings.Files
 
 		// Data write commands
 		case "saveSettings":
 			var authenticationUpdate = Settings.AuthenticationWEB
-			// var previousStoreBufferInRAM = Settings.StoreBufferInRAM
+			var previousStoreBufferInRAM = Settings.StoreBufferInRAM
 			response.Settings, err = updateServerSettings(request)
 			if err == nil {
 				response.OpenMenu = strconv.Itoa(indexOfString("settings", System.WEB.Menu))
@@ -485,9 +463,9 @@ func WS(w http.ResponseWriter, r *http.Request) {
 					response.Reload = true
 				}
 
-				// if Settings.StoreBufferInRAM != previousStoreBufferInRAM {
-				initBufferVFS()
-				// }
+				if Settings.StoreBufferInRAM != previousStoreBufferInRAM {
+					initBufferVFS()
+				}
 			}
 
 		case "saveFilesM3U":
@@ -670,7 +648,7 @@ func Web(w http.ResponseWriter, r *http.Request) {
 
 	systemMutex.Lock()
 	if System.Dev == true {
-		lang, err = loadJSONFileToMap(fmt.Sprintf("html/lang/%s.json", Settings.Language))
+		lang, err = loadJSONFileToMap(fmt.Sprintf("src/html/lang/%s.json", Settings.Language))
 		systemMutex.Unlock()
 		if err != nil {
 			ShowError(err, 000)
@@ -822,7 +800,7 @@ func Web(w http.ResponseWriter, r *http.Request) {
 	systemMutex.Lock()
 	if System.Dev == true {
 		// Lokale Webserver Dateien werden geladen, nur für die Entwicklung
-		content, _ = readStringFromFile(requestFile)
+		content, _ = readStringFromFile("src/" + requestFile)
 	}
 	systemMutex.Unlock()
 
@@ -1118,7 +1096,6 @@ func setDefaultResponseData(response ResponseStruct, data bool) (defaults Respon
 	if data == true {
 
 		defaults.Users, _ = authentication.GetAllUserData()
-		//defaults.DVR = System.DVRAddress
 
 		if Settings.EpgSource == "XEPG" {
 

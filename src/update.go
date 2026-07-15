@@ -1,183 +1,10 @@
 package src
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
-
-	up2date "threadfin/src/internal/up2date/client"
-
-	"github.com/hashicorp/go-version"
-
 	"reflect"
 )
-
-// BinaryUpdate : Binary Update Prozess. Git Branch master und beta wird von GitHub geladen.
-func BinaryUpdate() (err error) {
-
-	if !System.GitHub.Update {
-		showWarning(2099)
-		return
-	}
-
-	if !Settings.ThreadfinAutoUpdate {
-		showWarning(2098)
-		return
-	}
-
-	var debug string
-
-	var updater = &up2date.Updater
-	updater.Name = System.Update.Name
-	updater.Branch = System.Branch
-
-	up2date.Init()
-
-	log.Println("BRANCH: ", System.Branch)
-	switch System.Branch {
-
-	// Update von GitHub
-	case "Main", "Beta":
-		var releaseInfo = fmt.Sprintf("%s/releases", System.Update.Github)
-		var latest string
-		var body []byte
-
-		var git []*GithubReleaseInfo
-
-		resp, err := http.Get(releaseInfo)
-		if err != nil {
-			ShowError(err, 6003)
-			return nil
-		}
-
-		body, _ = io.ReadAll(resp.Body)
-
-		err = json.Unmarshal(body, &git)
-		if err != nil {
-			return err
-		}
-
-		// Get latest prerelease tag name
-		if System.Branch == "Beta" {
-			for _, release := range git {
-				if release.Prerelease {
-					latest = release.TagName
-					updater.Response.Version = release.TagName
-					break
-				}
-			}
-		}
-
-		// Latest main tag name
-		if System.Branch == "Main" {
-			for _, release := range git {
-				if !release.Prerelease {
-					updater.Response.Version = release.TagName
-					latest = release.TagName
-					log.Println("TAG LATEST: ", release.TagName)
-					break
-				}
-			}
-		}
-
-		var File = fmt.Sprintf("%s/releases/download/%s/%s_%s_%s", System.Update.Git, latest, "Threadfin", System.OS, System.ARCH)
-
-		updater.Response.Status = true
-		updater.Response.UpdateBIN = File
-
-		log.Println("FILE: ", updater.Response.UpdateBIN)
-
-	// Update vom eigenen Server
-	default:
-
-		updater.URL = Settings.UpdateURL
-
-		if len(updater.URL) == 0 {
-			showInfo(fmt.Sprintf("Update URL:No server URL specified, update will not be performed. Branch: %s", System.Branch))
-			return
-		}
-
-		showInfo("Update URL:" + updater.URL)
-		fmt.Println("-----------------")
-
-		// Versionsinformationen vom Server laden
-		err = up2date.GetVersion()
-		if err != nil {
-
-			debug = fmt.Sprintf(err.Error())
-			showDebug(debug, 1)
-
-			return nil
-		}
-
-		if len(updater.Response.Reason) > 0 {
-
-			err = fmt.Errorf(fmt.Sprintf("Update Server: %s", updater.Response.Reason))
-			ShowError(err, 6002)
-
-			return nil
-		}
-
-	}
-
-	var currentVersion = System.Version + "." + System.Build
-	current_version, _ := version.NewVersion(currentVersion)
-	response_version, _ := version.NewVersion(updater.Response.Version)
-	// Versionsnummer überprüfen
-	if response_version.GreaterThan(current_version) && updater.Response.Status {
-		if Settings.ThreadfinAutoUpdate {
-			// Update durchführen
-			var fileType, url string
-
-			showInfo(fmt.Sprintf("Update Available:Version: %s", updater.Response.Version))
-
-			switch System.Branch {
-
-			// Update von GitHub
-			case "master", "beta":
-				showInfo("Update Server:GitHub")
-
-			// Update vom eigenen Server
-			default:
-				showInfo(fmt.Sprintf("Update Server:%s", Settings.UpdateURL))
-
-			}
-
-			showInfo(fmt.Sprintf("Start Update:Branch: %s", updater.Branch))
-
-			// Neue Version als BIN Datei herunterladen
-			if len(updater.Response.UpdateBIN) > 0 {
-				url = updater.Response.UpdateBIN
-				fileType = "bin"
-			}
-
-			// Neue Version als ZIP Datei herunterladen
-			if len(updater.Response.UpdateZIP) > 0 {
-				url = updater.Response.UpdateZIP
-				fileType = "zip"
-			}
-
-			if len(url) > 0 {
-
-				err = up2date.DoUpdate(fileType, updater.Response.Filename)
-				if err != nil {
-					ShowError(err, 6002)
-				}
-
-			}
-
-		} else {
-			// Hinweis ausgeben
-			showWarning(6004)
-		}
-
-	}
-
-	return nil
-}
 
 func conditionalUpdateChanges() (err error) {
 
@@ -237,7 +64,8 @@ checkVersion:
 				var newBuffer string
 				switch oldBuffer {
 				case true:
-					newBuffer = "threadfin"
+					// Native threadfin buffer was removed; FFmpeg is the supported replacement.
+					newBuffer = "ffmpeg"
 				case false:
 					newBuffer = "-"
 				}
@@ -259,7 +87,12 @@ checkVersion:
 			}
 
 		case "2.1.0":
-			// Falls es in einem späteren Update Änderungen an der Datenbank gibt, geht es hier weiter
+			if normalizeLegacyBufferInSettingsMap(settingsMap) {
+				err = saveMapToJSONFile(System.File.Settings, settingsMap)
+				if err != nil {
+					return
+				}
+			}
 
 			break
 		}
@@ -270,6 +103,47 @@ checkVersion:
 	}
 
 	return
+}
+
+// normalizeLegacyBufferMode maps removed native "threadfin" buffer to FFmpeg.
+func normalizeLegacyBufferMode(buffer string) string {
+	if buffer == "threadfin" {
+		return "ffmpeg"
+	}
+	return buffer
+}
+
+func normalizeLegacyBufferInSettingsMap(settingsMap map[string]interface{}) (changed bool) {
+	if b, ok := settingsMap["buffer"].(string); ok && b == "threadfin" {
+		settingsMap["buffer"] = "ffmpeg"
+		changed = true
+	}
+
+	files, ok := settingsMap["files"].(map[string]interface{})
+	if !ok {
+		return changed
+	}
+
+	for _, fileType := range []string{"m3u", "hdhr"} {
+		playlists, ok := files[fileType].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		for id, entry := range playlists {
+			playlist, ok := entry.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if b, ok := playlist["buffer"].(string); ok && b == "threadfin" {
+				playlist["buffer"] = "ffmpeg"
+				playlists[id] = playlist
+				changed = true
+			}
+		}
+		files[fileType] = playlists
+	}
+
+	return changed
 }
 
 func convertToNewFilter(oldFilter []interface{}) (newFilterMap map[int]interface{}) {

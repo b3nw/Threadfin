@@ -12,10 +12,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -190,7 +188,7 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 		}
 		if playListMap, ok := playListInterface.(map[string]interface{}); ok {
 			if buffer, ok := playListMap["buffer"].(string); ok {
-				playListBuffer = buffer
+				playListBuffer = normalizeLegacyBufferMode(buffer)
 			} else {
 				playListBuffer = "-"
 			}
@@ -358,7 +356,7 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 		BufferInformation.Store(playlistID, playlist)
 		Lock.Unlock()
 
-		switch playlist.Buffer {
+		switch normalizeLegacyBufferMode(playlist.Buffer) {
 
 		case "ffmpeg", "vlc":
 			go thirdPartyBuffer(streamID, playlistID, false, 0)
@@ -493,13 +491,6 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 										w.Header().Set("Connection", "close")
 
 									}
-
-									/*
-									   // HDHR Header
-									   w.Header().Set("Cache-Control", "no-cache")
-									   w.Header().Set("Pragma", "no-cache")
-									   w.Header().Set("transferMode.dlna.org", "Streaming")
-									*/
 
 									_, err := w.Write(buffer)
 
@@ -709,315 +700,6 @@ func clientConnection(stream ThisStream) (status bool) {
 	return
 }
 
-func parseM3U8(stream *ThisStream) (err error) {
-
-	var debug string
-	var noNewSegment = false
-	var lastSegmentDuration float64
-	var segment Segment
-	var m3u8Segments []Segment
-	var sequence int64
-
-	stream.DynamicBandwidth = false
-
-	debug = fmt.Sprintf(`M3U8 Playlist:`+"\n"+`%s`, stream.Body)
-	showDebug(debug, 3)
-
-	var getBandwidth = func(line string) int {
-
-		var infos = strings.Split(line, ",")
-
-		for _, info := range infos {
-
-			if strings.Contains(info, "BANDWIDTH=") {
-
-				var bandwidth = strings.Replace(info, "BANDWIDTH=", "", -1)
-				n, err := strconv.Atoi(bandwidth)
-				if err == nil {
-					return n
-				}
-
-			}
-
-		}
-
-		return 0
-	}
-
-	var parseParameter = func(line string, segment *Segment) (err error) {
-
-		line = strings.Trim(line, "\r\n")
-
-		var parameters = []string{"#EXT-X-VERSION:", "#EXT-X-PLAYLIST-TYPE:", "#EXT-X-MEDIA-SEQUENCE:", "#EXT-X-STREAM-INF:", "#EXTINF:"}
-
-		for _, parameter := range parameters {
-
-			if strings.Contains(line, parameter) {
-
-				var value = strings.Replace(line, parameter, "", -1)
-
-				switch parameter {
-
-				case "#EXT-X-VERSION:":
-					version, err := strconv.Atoi(value)
-					if err == nil {
-						segment.Version = version
-					}
-
-				case "#EXT-X-PLAYLIST-TYPE:":
-					segment.PlaylistType = value
-
-				case "#EXT-X-MEDIA-SEQUENCE:":
-					n, err := strconv.ParseInt(value, 10, 64)
-					if err == nil {
-						stream.Sequence = n
-						sequence = n
-					}
-
-				case "#EXT-X-STREAM-INF:":
-					segment.Info = true
-					segment.StreamInf.Bandwidth = getBandwidth(value)
-
-				case "#EXTINF:":
-					var d = strings.Split(value, ",")
-					if len(d) > 0 {
-
-						value = strings.Replace(d[0], ",", "", -1)
-						duration, err := strconv.ParseFloat(value, 64)
-						if err == nil {
-							segment.Duration = duration
-						} else {
-							ShowError(err, 1050)
-							return err
-						}
-
-					}
-
-				}
-
-			}
-
-		}
-
-		return
-	}
-
-	var parseURL = func(line string, segment *Segment) {
-
-		// Check if the address is a valid URL (http://... or /path/to/stream)
-		_, err := url.ParseRequestURI(line)
-		if err == nil {
-
-			// Check if the domain is included in the address
-			u, _ := url.Parse(line)
-
-			if len(u.Host) == 0 {
-				// Address does not contain the domain, redirect is added to the address
-				segment.URL = stream.URLStreamingServer + line
-			} else {
-				// Domain included in the address
-				segment.URL = line
-			}
-
-		} else {
-
-			// Not a URL, but a file path (media/file-01.ts)
-			var serverURLPath = strings.Replace(stream.M3U8URL, path.Base(stream.M3U8URL), line, -1)
-			segment.URL = serverURLPath
-
-		}
-	}
-
-	if strings.Contains(stream.Body, "#EXTM3U") {
-
-		var lines = strings.Split(strings.Replace(stream.Body, "\r\n", "\n", -1), "\n")
-
-		if !stream.DynamicBandwidth {
-			stream.DynamicStream = make(map[int]DynamicStream)
-		}
-
-		// Parse parameters
-		for i, line := range lines {
-
-			_ = i
-
-			if len(line) > 0 {
-
-				if line[0:1] == "#" {
-
-					err := parseParameter(line, &segment)
-					if err != nil {
-						return err
-					}
-
-					lastSegmentDuration = segment.Duration
-
-				}
-
-				// M3U8 contains multiple links to other M3U8 playlists (bandwidth options)
-				if segment.Info && len(line) > 0 && line[0:1] != "#" {
-
-					var dynamicStream DynamicStream
-
-					segment.Duration = 0
-					noNewSegment = false
-
-					stream.DynamicBandwidth = true
-					parseURL(line, &segment)
-
-					dynamicStream.Bandwidth = segment.StreamInf.Bandwidth
-					dynamicStream.URL = segment.URL
-
-					stream.DynamicStream[dynamicStream.Bandwidth] = dynamicStream
-
-				}
-
-				// Segment with TS stream
-				if segment.Duration > 0 && line[0:1] != "#" {
-
-					parseURL(line, &segment)
-
-					if len(segment.URL) > 0 {
-						segment.Sequence = sequence
-						m3u8Segments = append(m3u8Segments, segment)
-						sequence++
-					}
-
-				}
-
-			}
-
-		}
-
-	} else {
-
-		err = errors.New(getErrMsg(4051))
-		return
-	}
-
-	if len(m3u8Segments) > 0 {
-
-		noNewSegment = true
-
-		if !stream.Status {
-
-			if len(m3u8Segments) >= 2 {
-				m3u8Segments = m3u8Segments[0 : len(m3u8Segments)-1]
-			}
-
-		}
-
-		for _, s := range m3u8Segments {
-
-			segment = s
-
-			if !stream.Status {
-
-				noNewSegment = false
-				stream.LastSequence = segment.Sequence
-
-				// Stream is of type VOD. The first segment of the M3U8 playlist must be used.
-				if strings.ToUpper(segment.PlaylistType) == "VOD" {
-					break
-				}
-
-			} else {
-
-				if segment.Sequence > stream.LastSequence {
-
-					stream.LastSequence = segment.Sequence
-					noNewSegment = false
-					break
-
-				}
-
-			}
-
-		}
-
-	}
-
-	if !noNewSegment {
-
-		if stream.DynamicBandwidth {
-			switchBandwidth(stream)
-		} else {
-			stream.Segment = append(stream.Segment, segment)
-		}
-
-	}
-
-	if noNewSegment {
-
-		var sleep = lastSegmentDuration * 0.5
-
-		for i := 0.0; i < sleep*1000; i = i + 100 {
-
-			_ = i
-			time.Sleep(time.Duration(100) * time.Millisecond)
-
-			if _, err := bufferVFS.Stat(stream.Folder); fsIsNotExistErr(err) {
-				break
-			}
-
-		}
-
-	}
-
-	return
-}
-
-func switchBandwidth(stream *ThisStream) (err error) {
-
-	var bandwidth []int
-	var dynamicStream DynamicStream
-	var segment Segment
-
-	for key := range stream.DynamicStream {
-		bandwidth = append(bandwidth, key)
-	}
-
-	sort.Ints(bandwidth)
-
-	if len(bandwidth) > 0 {
-
-		for i := range bandwidth {
-
-			segment.StreamInf.Bandwidth = stream.DynamicStream[bandwidth[i]].Bandwidth
-
-			dynamicStream = stream.DynamicStream[bandwidth[0]]
-
-			if stream.NetworkBandwidth == 0 {
-
-				dynamicStream = stream.DynamicStream[bandwidth[0]]
-				break
-
-			} else {
-
-				if bandwidth[i] > stream.NetworkBandwidth {
-					break
-				}
-
-				dynamicStream = stream.DynamicStream[bandwidth[i]]
-
-			}
-
-		}
-
-	} else {
-
-		err = errors.New("M3U8 does not contain streaming URLs")
-		return
-
-	}
-
-	segment.URL = dynamicStream.URL
-	segment.Duration = 0
-	stream.Segment = append(stream.Segment, segment)
-
-	return
-}
-
 // Buffer with FFMPEG
 func thirdPartyBuffer(streamID int, playlistID string, useBackup bool, backupNumber int) {
 
@@ -1063,7 +745,7 @@ func thirdPartyBuffer(streamID int, playlistID string, useBackup bool, backupNum
 
 		bufferType = strings.ToUpper(playlist.Buffer)
 
-		switch playlist.Buffer {
+		switch normalizeLegacyBufferMode(playlist.Buffer) {
 
 		case "ffmpeg":
 
@@ -1396,7 +1078,7 @@ func getTuner(id, playlistType string) (tuner int) {
 	}
 	if playListMap, ok := playListInterface.(map[string]interface{}); ok {
 		if buffer, ok := playListMap["buffer"].(string); ok {
-			playListBuffer = buffer
+			playListBuffer = normalizeLegacyBufferMode(buffer)
 		} else {
 			playListBuffer = "-"
 		}
@@ -1408,7 +1090,7 @@ func getTuner(id, playlistType string) (tuner int) {
 	case "-":
 		tuner = Settings.Tuner
 
-	case "threadfin", "ffmpeg", "vlc":
+	case "ffmpeg", "vlc":
 
 		i, err := strconv.Atoi(getProviderParameter(id, playlistType, "tuner"))
 		if err == nil {

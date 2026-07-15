@@ -71,12 +71,6 @@ func Init() (err error) {
 	// Default Logeinträge, wird später von denen aus der settings.json überschrieben. Muss gemacht werden, damit die ersten Einträge auch im Log (webUI aangezeigt werden)
 	Settings.LogEntriesRAM = 500
 
-	// Variablen für den Update Prozess
-	//System.Update.Git = "https://github.com/Threadfin/Threadfin/blob"
-	System.Update.Git = fmt.Sprintf("https://github.com/%s/%s", System.GitHub.User, System.GitHub.Repo)
-	System.Update.Github = fmt.Sprintf("https://api.github.com/repos/%s/%s", System.GitHub.User, System.GitHub.Repo)
-	System.Update.Name = "Threadfin"
-
 	// Ordnerpfade festlegen
 	var tempFolder = os.TempDir() + string(os.PathSeparator) + System.AppName + string(os.PathSeparator)
 	tempFolder = getPlatformPath(strings.Replace(tempFolder, "//", "/", -1))
@@ -175,8 +169,6 @@ func Init() (err error) {
 		err = checkFilePermission(System.Folder.Temp)
 	}
 
-	// Separaten tmp Ordner für jede Instanz
-	//System.Folder.Temp = System.Folder.Temp + Settings.UUID + string(os.PathSeparator)
 	showInfo(fmt.Sprintf("Temporary Folder:%s", getPlatformPath(System.Folder.Temp)))
 
 	err = checkFolder(System.Folder.Temp)
@@ -200,8 +192,7 @@ func Init() (err error) {
 		System.Branch = cases.Title(language.English).String("main")
 	}
 
-	showInfo(fmt.Sprintf("GitHub:https://github.com/%s", System.GitHub.User))
-	showInfo(fmt.Sprintf("Git Branch:%s [%s]", System.Branch, System.GitHub.User))
+	showInfo(fmt.Sprintf("Git Branch:%s", System.Branch))
 
 	// Set base URI
 	if Settings.HttpThreadfinDomain != "" {
@@ -211,17 +202,6 @@ func Init() (err error) {
 	}
 
 	System.URLBase = fmt.Sprintf("%s://%s:%s", System.ServerProtocol.WEB, System.IPAddress, Settings.Port)
-
-	// HTML Dateien erstellen, mit dev == true werden die lokalen HTML Dateien verwendet
-	if System.Dev == true {
-
-		HTMLInit("webUI", "src", "html"+string(os.PathSeparator), "src"+string(os.PathSeparator)+"webUI.go")
-		err = BuildGoFile()
-		if err != nil {
-			return
-		}
-
-	}
 
 	// DLNA Server starten
 	if Settings.SSDP {

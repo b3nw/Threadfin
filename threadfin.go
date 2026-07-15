@@ -6,37 +6,15 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"threadfin/src"
 )
-
-// GitHubStruct : GitHub Account. Über diesen Account werden die Updates veröffentlicht
-type GitHubStruct struct {
-	Branch  string
-	Repo    string
-	Update  bool
-	User    string
-	TagName string
-}
-
-// GitHub : GitHub Account
-// If you want to fork this project, enter your Github account here. This prevents a newer version of Threadfin from updating your version.
-var GitHub = GitHubStruct{Branch: "Main", User: "Threadfin", Repo: "Threadfin", Update: true}
-
-/*
-	Branch: GitHub Branch
-	User: 	GitHub Username
-	Repo: 	GitHub Repository
-	Update: Automatic updates from the GitHub repository [true|false]
-*/
 
 // Name : Programmname
 const Name = "Threadfin"
@@ -58,7 +36,6 @@ var configFolder = flag.String("config", "", ": Config Folder        ["+samplePa
 var port = flag.String("port", "", ": Server port          [34400] (default: 34400)")
 var restore = flag.String("restore", "", ": Restore from backup  ["+sampleRestore+"threadfin_backup.zip]")
 
-var gitBranch = flag.String("branch", "", ": Git Branch           [main|beta] (default: main)")
 var debug = flag.Int("debug", 0, ": Debug level          [0 - 3] (default: 0)")
 var info = flag.Bool("info", false, ": Show system info")
 var h = flag.Bool("h", false, ": Show help")
@@ -74,10 +51,8 @@ func main() {
 
 	var system = &src.System
 	system.APIVersion = APIVersion
-	system.Branch = strings.ToTitle(GitHub.Branch)
 	system.Build = build[len(build)-1:][0]
 	system.DBVersion = DBVersion
-	system.GitHub = GitHub
 	system.Name = Name
 	system.Version = strings.Join(build[0:len(build)-1], ".")
 
@@ -152,12 +127,6 @@ func main() {
 		system.IPAddress = *bindIpAddress
 	}
 
-	// Branch
-	system.Flag.Branch = *gitBranch
-	if len(system.Flag.Branch) > 0 {
-		fmt.Println("Git Branch is now:", system.Flag.Branch)
-	}
-
 	// Debug Level
 	system.Flag.Debug = *debug
 	if system.Flag.Debug > 3 {
@@ -195,11 +164,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	err = src.BinaryUpdate()
-	if err != nil {
-		src.ShowError(err, 0)
-	}
-
 	err = src.StartSystem(false)
 	if err != nil {
 		src.ShowError(err, 0)
@@ -218,22 +182,4 @@ func main() {
 		os.Exit(0)
 	}
 
-}
-
-func getPIDs(command string) ([]string, error) {
-	var out bytes.Buffer
-	cmd := exec.Command("bash", "-c", command)
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-	pids := strings.Fields(out.String())
-	return pids, nil
-}
-
-// killProcess kills a process by its PID
-func killProcess(pid string) error {
-	cmd := exec.Command("kill", "-9", pid)
-	return cmd.Run()
 }

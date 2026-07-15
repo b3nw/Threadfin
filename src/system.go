@@ -151,7 +151,7 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["ssdp"] = true
 	defaults["storeBufferInRAM"] = true
 	defaults["forceHttps"] = false
-    defaults["excludeStreamHttps"] = false
+	defaults["excludeStreamHttps"] = false
 	defaults["httpsPort"] = 443
 	defaults["httpsThreadfinDomain"] = ""
 	defaults["httpThreadfinDomain"] = ""
@@ -164,10 +164,6 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["uuid"] = createUUID()
 	defaults["udpxy"] = ""
 	defaults["version"] = System.DBVersion
-	defaults["ThreadfinAutoUpdate"] = true
-	if isRunningInContainer() {
-		defaults["ThreadfinAutoUpdate"] = false
-	}
 	defaults["temp.path"] = System.Folder.Temp
 
 	// Default Werte setzen
@@ -179,6 +175,18 @@ func loadSettings() (settings SettingsStruct, err error) {
 	err = json.Unmarshal([]byte(mapToJSON(settingsMap)), &settings)
 	if err != nil {
 		return SettingsStruct{}, err
+	}
+
+	settings.Buffer = normalizeLegacyBufferMode(settings.Buffer)
+	if normalizeLegacyBufferInSettingsMap(settingsMap) {
+		if err = saveMapToJSONFile(System.File.Settings, settingsMap); err != nil {
+			return SettingsStruct{}, err
+		}
+		err = json.Unmarshal([]byte(mapToJSON(settingsMap)), &settings)
+		if err != nil {
+			return SettingsStruct{}, err
+		}
+		settings.Buffer = normalizeLegacyBufferMode(settings.Buffer)
 	}
 
 	// Einstellungen von den Flags übernehmen

@@ -15,7 +15,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"text/template"
 
@@ -57,13 +56,6 @@ func checkVFSFolder(path string, vfs avfs.VFS) (err error) {
 
 	if fsIsNotExistErr(err) {
 		// Folder does not exist, will now be created
-
-		// If we are on Windows and the cache location path is NOT on C:\ we need to create the volume it is located on
-		// Failure to do so here will result in a panic error and the stream not playing
-		vm := vfs.(avfs.VolumeManager)
-		if vfs.OSType() == avfs.OsWindows && avfs.VolumeName(vfs, path) != "C:" {
-			vm.VolumeAdd(path)
-		}
 
 		err = vfs.MkdirAll(getPlatformPath(path), 0755)
 		if err == nil {
@@ -120,24 +112,12 @@ func checkFile(filename string) (err error) {
 
 // GetUserHomeDirectory : Benutzer Homer Verzeichnis
 func GetUserHomeDirectory() (userHomeDirectory string) {
-
 	usr, err := user.Current()
-
 	if err != nil {
-
-		for _, name := range []string{"HOME", "USERPROFILE"} {
-
-			if dir := os.Getenv(name); dir != "" {
-				userHomeDirectory = dir
-				break
-			}
-
-		}
-
+		userHomeDirectory = os.Getenv("HOME")
 	} else {
 		userHomeDirectory = usr.HomeDir
 	}
-
 	return
 }
 
@@ -174,35 +154,17 @@ func getFilenameFromPath(path string) (file string) {
 	return filepath.Base(path)
 }
 
-// Nicht mehr verwendete Systemdaten löschen
-func removeOldSystemData() {
-	// Temporären Ordner löschen
-	os.RemoveAll(System.Folder.Temp)
-}
-
 // Sucht eine Datei im OS
 func searchFileInOS(file string) (path string) {
+	var args = file
+	var cmd = exec.Command("which", strings.Split(args, " ")...)
 
-	switch runtime.GOOS {
-
-	case "linux", "darwin", "freebsd":
-		var args = file
-		var cmd = exec.Command("which", strings.Split(args, " ")...)
-
-		out, err := cmd.CombinedOutput()
-		if err == nil {
-
-			var slice = strings.Split(strings.Replace(string(out), "\r\n", "\n", -1), "\n")
-
-			if len(slice) > 0 {
-				path = strings.Trim(slice[0], "\r\n")
-			}
-
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		var slice = strings.Split(strings.Replace(string(out), "\r\n", "\n", -1), "\n")
+		if len(slice) > 0 {
+			path = strings.Trim(slice[0], "\r\n")
 		}
-
-	default:
-		return
-
 	}
 
 	return

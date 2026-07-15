@@ -3,7 +3,6 @@ package src
 import (
 	"fmt"
 	"log"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -173,17 +172,9 @@ func printLogOnScreen(logMsg string, logType string) {
 
 	}
 
-	switch runtime.GOOS {
-
-	case "windows":
-		log.Println(logMsg)
-
-	default:
-		fmt.Print(color)
-		log.Println(logMsg)
-		fmt.Print("\033[0m")
-
-	}
+	fmt.Print(color)
+	log.Println(logMsg)
+	fmt.Print("\033[0m")
 
 }
 

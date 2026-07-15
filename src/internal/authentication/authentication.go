@@ -13,6 +13,8 @@ import (
 	"encoding/base64"
 
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 	//"fmt"
 	//"log"
 )
@@ -40,90 +42,6 @@ type Cookie struct {
 	Expires    time.Time
 	RawExpires string
 }
-
-// Framework examples
-
-/*
-func main() {
-  var err error
-
-  var checkErr = func(err error) {
-     log.Println(err)
-     os.Exit(0)
-  }
-
-  err = Init("", 10)          // Path to save the data, Validity of tokens in minutes | (error)
-  if err != nil {
-    checkErr(err)
-  }
-
-
-  err = CreateDefaultUser("admin", "123")
-  if err != nil {
-    checkErr(err)
-  }
-
-
-
-
-  err = CreateNewUser("threadfin", "threadfin")          // Username, Password | (error)
-  if err != nil {
-    checkErr(err)
-  }
-
-
-
-  err, token := UserAuthentication("threadfin", "threadfin")          // Username, Password | (error, token)
-  if err != nil {
-    checkErr(err)
-  } else {
-    fmt.Println("UserAuthentication()")
-    fmt.Println("Token:", token)
-    fmt.Println("---")
-  }
-
-  err, newToken := CheckTheValidityOfTheToken(token)        // Current token | (error, new token)
-  if err != nil {
-    checkErr(err)
-  } else {
-    fmt.Println("CheckTheValidityOfTheToken()")
-    fmt.Println("New Token:", newToken)
-    fmt.Println("---")
-  }
-
-  err, userID := GetUserID(newToken)                        // Current token | (error, user id)
-  if err != nil {
-    checkErr(err)
-  } else {
-    fmt.Println("GetUserID()")
-    fmt.Println("User ID:", userID)
-    fmt.Println("---")
-  }
-
-
-  var userData = make(map[string]interface{})
-  userData["type"] = "Administrator"
-  err = WriteUserData(userID, userData)          // User id, user data | (error)
-  if err != nil {
-    checkErr(err)
-  }
-
-  err, userData = ReadUserData(userID)          // User id | (error, userData)
-  if err != nil {
-    checkErr(err)
-  } else {
-    fmt.Println("ReadUserData()")
-    fmt.Println("User data:", userData)
-    fmt.Println("---")
-  }
-
-  err = RemoveUser(userID)
-  if err != nil {
-    checkErr(err)
-  }
-
-}
-*/
 
 // Init : databasePath = Path to authentication.json
 func Init(databasePath string, validity int) (err error) {
@@ -182,10 +100,9 @@ func CreateNewUser(username, password string) (userID string, err error) {
 	}
 
 	var checkIfTheUserAlreadyExists = func(username string, userData map[string]interface{}) (err error) {
-		var salt = userData["_salt"].(string)
 		var loginUsername = userData["_username"].(string)
 
-		if SHA256(username, salt) == loginUsername {
+		if CheckPassword(username, loginUsername) {
 			err = createError(020)
 		}
 
@@ -220,12 +137,11 @@ func UserAuthentication(username, password string) (token string, err error) {
 	var login = func(username, password string, loginData map[string]interface{}) (err error) {
 		err = createError(010)
 
-		var salt = loginData["_salt"].(string)
 		var loginUsername = loginData["_username"].(string)
 		var loginPassword = loginData["_password"].(string)
 
-		if SHA256(username, salt) == loginUsername {
-			if SHA256(password, salt) == loginPassword {
+		if CheckPassword(username, loginUsername) {
+			if CheckPassword(password, loginPassword) {
 				err = nil
 			}
 		}
@@ -392,15 +308,14 @@ func ChangeCredentials(userID, username, password string) (err error) {
 	err = createError(032)
 
 	if userData, ok := data["users"].(map[string]interface{})[userID]; ok {
-		//var userData = tmp.(map[string]interface{})
-		var salt = userData.(map[string]interface{})["_salt"].(string)
-
 		if len(username) > 0 {
-			userData.(map[string]interface{})["_username"] = SHA256(username, salt)
+			hash, _ := HashPassword(username)
+			userData.(map[string]interface{})["_username"] = hash
 		}
 
 		if len(password) > 0 {
-			userData.(map[string]interface{})["_password"] = SHA256(password, salt)
+			hash, _ := HashPassword(password)
+			userData.(map[string]interface{})["_password"] = hash
 		}
 
 		err = saveDatabase(data)
@@ -486,12 +401,23 @@ func loadDatabase() (err error) {
 	return
 }
 
-// SHA256 : password + salt = sha256 string
-func SHA256(secret, salt string) string {
+func legacySHA256(secret, salt string) string {
 	key := []byte(secret)
 	h := hmac.New(sha256.New, key)
 	h.Write([]byte("_remote_db"))
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func CheckPassword(password, hash string) bool {
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err == nil {
+		return true
+	}
+	return legacySHA256(password, "") == hash
 }
 
 func randomString(n int) string {
@@ -545,12 +471,12 @@ func createError(errCode int) (err error) {
 
 func defaultsForNewUser(username, password string) map[string]interface{} {
 	var defaults = make(map[string]interface{})
-	var salt = randomString(saltLength)
-	defaults["_username"] = SHA256(username, salt)
-	defaults["_password"] = SHA256(password, salt)
-	defaults["_salt"] = salt
+	usernameHash, _ := HashPassword(username)
+	passwordHash, _ := HashPassword(password)
+	defaults["_username"] = usernameHash
+	defaults["_password"] = passwordHash
+	defaults["_salt"] = randomString(saltLength)
 	defaults["_id"] = "id-" + randomID(idLength)
-	//defaults["_one.time.token"] = randomString(tokenLength)
 	defaults["data"] = make(map[string]interface{})
 
 	return defaults
