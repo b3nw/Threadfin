@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/avfs/avfs/vfs/memfs"
+	"github.com/avfs/avfs/vfs/osfs"
 )
 
 type BackupStream struct {
@@ -1105,8 +1106,12 @@ func getTuner(id, playlistType string) (tuner int) {
 	return
 }
 
-func initBufferVFS() {
-	bufferVFS = memfs.New()
+func initBufferVFS(virtual bool) {
+	if virtual {
+		bufferVFS = memfs.New()
+	} else {
+		bufferVFS = osfs.New()
+	}
 }
 
 func debugRequest(req *http.Request) {

@@ -207,8 +207,8 @@ func loadSettings() (settings SettingsStruct, err error) {
 		settings.VLCPath = searchFileInOS("cvlc")
 	}
 
-	// Initialze virutal filesystem for the Buffer
-	initBufferVFS()
+	// Initialize virtual filesystem for the Buffer
+	initBufferVFS(settings.StoreBufferInRAM)
 
 	settings.Version = System.DBVersion
 

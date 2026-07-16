@@ -464,7 +464,7 @@ func WS(w http.ResponseWriter, r *http.Request) {
 				}
 
 				if Settings.StoreBufferInRAM != previousStoreBufferInRAM {
-					initBufferVFS()
+					initBufferVFS(Settings.StoreBufferInRAM)
 				}
 			}
 
