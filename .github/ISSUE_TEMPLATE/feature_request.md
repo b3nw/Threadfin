@@ -1,20 +1,22 @@
 ---
 name: Feature request
-about: Please only useful feature request.
+about: Suggest an improvement for this maintenance fork
 title: ''
-labels: ''
+labels: enhancement
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Is your request related to a problem?**
+A clear description of the problem or use case.
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**Proposed solution**
+What you would like to happen.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Alternatives considered**
+Other approaches you have thought about.
 
 **Additional context**
-Add any other context or screenshots about the feature request here.
+Screenshots, logs, or related CHANGELOG/migration impact if any.
+
+> Scope note: this fork prioritizes Docker + Plex DVR maintenance. Large new features may be declined if they increase maintenance burden without clear operational value.

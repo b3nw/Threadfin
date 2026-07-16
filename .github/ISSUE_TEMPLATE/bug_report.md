@@ -1,39 +1,32 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a problem with this Threadfin maintenance fork
 title: ''
-labels: ''
-assignees: Fyb3roptik
+labels: bug
+assignees: ''
 
 ---
-
-#### Please first read the [documentation](https://github.com/Threadfin/Threadfin/blob/main/en/configuration.md). Problems affecting the client, e.g. Plex or Emby should be reported there in the forum.
 
 **Describe the bug**
 A clear and concise description of what the bug is.
 
-**Server (please complete the following information):**
-- OS [e.g. Linux - Ubuntu]
-- Arch [e.g. Intel 64 Bit]
-- Threadfin Version and Build [to be found in the Threadfin log]
+**Environment**
+- OS / arch (e.g. Linux amd64, Docker)
+- How you run Threadfin (Docker image tag/build, binary)
+- Threadfin version and build (from the log)
+- Plex / Emby / Jellyfin version if relevant
 
 **To Reproduce**
 Steps to reproduce the behavior:
 1. Go to '...'
 2. Click on '....'
-3. Scroll down to '....'
-4. See error
+3. See error
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+What you expected to happen.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+**Logs**
+Relevant Threadfin log lines (redact credentials/URLs if needed).
 
 **Additional context**
-Add any other context about the problem here.
+Config notes, playlist type, buffer mode (`-` / ffmpeg / vlc), etc.
