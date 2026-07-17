@@ -140,7 +140,6 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["files"] = dataMap
 	defaults["files.update"] = true
 	defaults["filter"] = make(map[string]interface{})
-	defaults["git.branch"] = System.Branch
 	defaults["language"] = "en"
 	defaults["log.entries.ram"] = 500
 	defaults["mapping.first.channel"] = 1000
@@ -192,11 +191,6 @@ func loadSettings() (settings SettingsStruct, err error) {
 	// Einstellungen von den Flags übernehmen
 	if len(System.Flag.Port) > 0 {
 		settings.Port = System.Flag.Port
-	}
-
-	if len(System.Flag.Branch) > 0 {
-		settings.Branch = System.Flag.Branch
-		showInfo(fmt.Sprintf("Git Branch:Switching Git Branch to -> %s", settings.Branch))
 	}
 
 	if len(settings.FFmpegPath) == 0 {

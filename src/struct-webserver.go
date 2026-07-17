@@ -90,7 +90,6 @@ type RequestStruct struct {
 type ResponseStruct struct {
 	ClientInfo struct {
 		ARCH           string `json:"arch"`
-		Branch         string `json:"branch,omitempty"`
 		DVR            string `json:"DVR"`
 		EpgSource      string `json:"epgSource"`
 		Errors         int    `json:"errors"`

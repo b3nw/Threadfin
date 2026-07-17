@@ -14,7 +14,6 @@ type SystemStruct struct {
 	AppName                string
 	ARCH                   string
 	BackgroundProcess      bool
-	Branch                 string
 	Build                  string
 	Compatibility          string
 	ConfigurationWizard    bool
@@ -50,7 +49,6 @@ type SystemStruct struct {
 	}
 
 	Flag struct {
-		Branch  string
 		Debug   int
 		Info    bool
 		Port    string
@@ -265,7 +263,6 @@ type SettingsStruct struct {
 	AuthenticationXML bool     `json:"authentication.xml"`
 	BackupKeep        int      `json:"backup.keep"`
 	BackupPath        string   `json:"backup.path"`
-	Branch            string   `json:"git.branch,omitempty"`
 	Buffer            string   `json:"buffer"`
 	BufferSize        int      `json:"buffer.size.kb"`
 	BufferTimeout     float64  `json:"buffer.timeout"`

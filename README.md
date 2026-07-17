@@ -46,7 +46,7 @@ M3U proxy for **Plex DVR** and Emby/Jellyfin Live TV. Originally based on [xTeVe
 
 - **Linux** is the primary target (especially Docker).
 - **FFmpeg** (and optionally **VLC/cvlc**) when using a buffered playlist mode.
-- Go **1.23+** to build from source (see `go.mod` for the module’s declared version).
+- Go **1.25+** to build from source (see `go.mod`).
 
 ## Docker
 
@@ -118,7 +118,6 @@ Output goes to `src/html/js/`. Production builds embed `src/html/` via `//go:emb
 - [koron/go-ssdp](https://github.com/koron/go-ssdp)
 - [avfs](https://github.com/avfs/avfs)
 - [golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto) (bcrypt)
-- [golang.org/x/text](https://pkg.go.dev/golang.org/x/text)
 
 ## Upgrading / migration
 

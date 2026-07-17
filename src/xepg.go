@@ -987,11 +987,7 @@ func createXMLTVFile() (err error) {
 
 	xepgXML.Generator = System.Name
 
-	if System.Branch == "main" {
-		xepgXML.Source = fmt.Sprintf("%s - %s", System.Name, System.Version)
-	} else {
-		xepgXML.Source = fmt.Sprintf("%s - %s.%s", System.Name, System.Version, System.Build)
-	}
+	xepgXML.Source = fmt.Sprintf("%s - %s.%s", System.Name, System.Version, System.Build)
 
 	var tmpProgram = &XMLTV{}
 

@@ -1082,16 +1082,7 @@ func setDefaultResponseData(response ResponseStruct, data bool) (defaults Respon
 	defaults.Notification = System.Notification
 	defaults.Log = WebScreenLog
 
-	switch System.Branch {
-
-	case "master":
-		defaults.ClientInfo.Version = fmt.Sprintf("%s", System.Version)
-
-	default:
-		defaults.ClientInfo.Version = fmt.Sprintf("%s (%s)", System.Version, System.Build)
-		defaults.ClientInfo.Branch = System.Branch
-
-	}
+	defaults.ClientInfo.Version = fmt.Sprintf("%s (%s)", System.Version, System.Build)
 
 	if data == true {
 

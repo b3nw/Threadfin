@@ -21,7 +21,6 @@ func ShowSystemInfo() {
 	println()
 
 	fmt.Println(fmt.Sprintf("Version:             %s %s.%s", System.Name, System.Version, System.Build))
-	fmt.Println(fmt.Sprintf("Branch:              %s", System.Branch))
 	fmt.Println(fmt.Sprintf("Folder (config):     %s", System.Folder.Config))
 
 	fmt.Println(fmt.Sprintf("Streams:             %d / %d", len(Data.Streams.Active), len(Data.Streams.All)))

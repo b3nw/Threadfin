@@ -8,8 +8,6 @@ import (
 	"sync"
 
 	"github.com/avfs/avfs"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // System : Beinhaltet alle Systeminformationen
@@ -180,19 +178,6 @@ func Init() (err error) {
 	if err != nil {
 		return
 	}
-
-	// Branch festlegen
-	System.Branch = cases.Title(language.English).String(Settings.Branch)
-
-	if System.Dev {
-		System.Branch = cases.Title(language.English).String("development")
-	}
-
-	if len(System.Branch) == 0 {
-		System.Branch = cases.Title(language.English).String("main")
-	}
-
-	showInfo(fmt.Sprintf("Git Branch:%s", System.Branch))
 
 	// Set base URI
 	if Settings.HttpThreadfinDomain != "" {
