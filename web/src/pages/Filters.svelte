@@ -28,7 +28,17 @@
 
   function newFilter(type: 'group-title' | 'custom-filter') {
     choosingType = false
-    editing = { id: '-1', filter: { type, active: true, startingNumber: '1000' } }
+    editing = {
+      id: '-1',
+      filter: {
+        type,
+        active: true,
+        startingNumber: '1000',
+        // Preselect the first group so saving without touching the select
+        // doesn't create an empty group filter.
+        filter: type === 'group-title' ? (m3uGroups.value[0] ?? '') : '',
+      },
+    }
   }
 
   function openFilter(id: string, filter: Filter) {

@@ -5,8 +5,10 @@
 Threadfin ships two web interfaces:
 
 - **`/web/`** — the legacy interface. TypeScript sources in `ts/` are compiled
-  with `ts/compileJS.sh` into `src/html/js/` and served through Go's template
-  engine (localization placeholders are substituted per request).
+  with `ts/compileJS.sh` into `html/js/`; the `html/` tree is then baked into
+  the generated `src/webUI.go` (see `src/html-build.go` / dev mode) as base64
+  strings and served through Go's template engine (localization placeholders
+  are substituted per request).
 - **`/ui/`** — the new single-page interface (Vite + Svelte). Sources live in
   `web/`; the production bundle is committed to `webui/dist/` and embedded
   into the binary via `go:embed` (`webui/embed.go`). Assets are static — no

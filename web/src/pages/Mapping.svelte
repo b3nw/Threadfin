@@ -8,10 +8,15 @@
   let working = $state<Record<string, EpgChannel>>({})
   let dirty = $state(false)
 
+  // Sync from the server snapshot only while there are no local edits —
+  // other commands (e.g. probing a stream from the editor) also refresh the
+  // snapshot and must not wipe unsaved changes. Saving sets dirty back to
+  // false, which re-runs this effect and adopts the post-save snapshot.
   $effect(() => {
     const snapshot = $epgMapping
-    working = structuredClone(snapshot)
-    dirty = false
+    if (!dirty) {
+      working = structuredClone(snapshot)
+    }
   })
 
   let search = $state('')
@@ -131,7 +136,10 @@
 
   async function save() {
     const result = await send('saveEpgMapping', { epgMapping: working })
-    if (result) showToast('success', 'Mapping saved.')
+    if (result) {
+      dirty = false
+      showToast('success', 'Mapping saved.')
+    }
   }
 
   function toggleAll(entries: [string, EpgChannel][], value: boolean) {

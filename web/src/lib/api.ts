@@ -84,6 +84,10 @@ function doRequest(cmd: Command, data: Record<string, unknown>): Promise<ServerR
 
 /** Login via the classic /web/ form endpoint, which sets the Token cookie. */
 export async function login(username: string, password: string, confirm?: string): Promise<boolean> {
+  // Drop any stale token first: a failed login leaves the old cookie in
+  // place, which would otherwise read as success below.
+  document.cookie = 'Token=-; path=/'
+
   const body = new URLSearchParams({ username, password })
   if (confirm !== undefined) body.set('confirm', confirm)
 
