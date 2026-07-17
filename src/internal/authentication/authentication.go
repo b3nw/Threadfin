@@ -84,7 +84,10 @@ func CreateDefaultUser(username, password string) (err error) {
 		return
 	}
 
-	var defaults = defaultsForNewUser(username, password)
+	defaults, err := defaultsForNewUser(username, password)
+	if err != nil {
+		return
+	}
 	users[defaults["_id"].(string)] = defaults
 	saveDatabase(data)
 
@@ -117,7 +120,10 @@ func CreateNewUser(username, password string) (userID string, err error) {
 		}
 	}
 
-	var defaults = defaultsForNewUser(username, password)
+	defaults, err := defaultsForNewUser(username, password)
+	if err != nil {
+		return
+	}
 	userID = defaults["_id"].(string)
 	users[userID] = defaults
 
@@ -151,14 +157,43 @@ func UserAuthentication(username, password string) (token string, err error) {
 
 	var users = data["users"].(map[string]interface{})
 	for id, loginData := range users {
-		err = login(username, password, loginData.(map[string]interface{}))
+		var userData = loginData.(map[string]interface{})
+		err = login(username, password, userData)
 		if err == nil {
+			// Transparently migrate legacy SHA256 hashes to bcrypt on
+			// successful login so the weak format ages out over time.
+			upgradeLegacyCredentials(username, password, userData)
 			token = setToken(id, "-")
 			return
 		}
 	}
 
 	return
+}
+
+// upgradeLegacyCredentials re-hashes any legacy (non-bcrypt) username/password
+// hashes with bcrypt and persists the change. It is a no-op for users already
+// stored with bcrypt or when re-hashing fails.
+func upgradeLegacyCredentials(username, password string, userData map[string]interface{}) {
+	var changed bool
+
+	if stored, ok := userData["_username"].(string); ok && needsRehash(stored) {
+		if hash, err := HashPassword(username); err == nil {
+			userData["_username"] = hash
+			changed = true
+		}
+	}
+
+	if stored, ok := userData["_password"].(string); ok && needsRehash(stored) {
+		if hash, err := HashPassword(password); err == nil {
+			userData["_password"] = hash
+			changed = true
+		}
+	}
+
+	if changed {
+		saveDatabase(data)
+	}
 }
 
 // CheckTheValidityOfTheToken : check token
@@ -309,12 +344,18 @@ func ChangeCredentials(userID, username, password string) (err error) {
 
 	if userData, ok := data["users"].(map[string]interface{})[userID]; ok {
 		if len(username) > 0 {
-			hash, _ := HashPassword(username)
+			hash, hashErr := HashPassword(username)
+			if hashErr != nil {
+				return hashErr
+			}
 			userData.(map[string]interface{})["_username"] = hash
 		}
 
 		if len(password) > 0 {
-			hash, _ := HashPassword(password)
+			hash, hashErr := HashPassword(password)
+			if hashErr != nil {
+				return hashErr
+			}
 			userData.(map[string]interface{})["_password"] = hash
 		}
 
@@ -401,7 +442,7 @@ func loadDatabase() (err error) {
 	return
 }
 
-func legacySHA256(secret, salt string) string {
+func legacySHA256(secret string) string {
 	key := []byte(secret)
 	h := hmac.New(sha256.New, key)
 	h.Write([]byte("_remote_db"))
@@ -417,7 +458,14 @@ func CheckPassword(password, hash string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err == nil {
 		return true
 	}
-	return legacySHA256(password, "") == hash
+	return legacySHA256(password) == hash
+}
+
+// needsRehash reports whether the stored hash is a legacy (non-bcrypt) hash and
+// should be upgraded to bcrypt.
+func needsRehash(hash string) bool {
+	_, err := bcrypt.Cost([]byte(hash))
+	return err != nil
 }
 
 func randomString(n int) string {
@@ -469,17 +517,23 @@ func createError(errCode int) (err error) {
 	return
 }
 
-func defaultsForNewUser(username, password string) map[string]interface{} {
+func defaultsForNewUser(username, password string) (map[string]interface{}, error) {
 	var defaults = make(map[string]interface{})
-	usernameHash, _ := HashPassword(username)
-	passwordHash, _ := HashPassword(password)
+	usernameHash, err := HashPassword(username)
+	if err != nil {
+		return nil, err
+	}
+	passwordHash, err := HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
 	defaults["_username"] = usernameHash
 	defaults["_password"] = passwordHash
 	defaults["_salt"] = randomString(saltLength)
 	defaults["_id"] = "id-" + randomID(idLength)
 	defaults["data"] = make(map[string]interface{})
 
-	return defaults
+	return defaults, nil
 }
 
 func setToken(id, oldToken string) (newToken string) {
