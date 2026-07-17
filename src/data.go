@@ -169,6 +169,8 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 		Settings.VLCOptions = System.VLC.DefaultOptions
 	}
 
+	Settings.Buffer = normalizeLegacyBufferMode(Settings.Buffer)
+
 	switch Settings.Buffer {
 
 	case "ffmpeg":
@@ -492,7 +494,6 @@ func saveFilter(request RequestStruct) (settings SettingsStruct, err error) {
 	}
 
 	settings = Settings
-
 
 	err = buildDatabaseDVR()
 	if err != nil {

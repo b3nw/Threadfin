@@ -140,7 +140,6 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["files"] = dataMap
 	defaults["files.update"] = true
 	defaults["filter"] = make(map[string]interface{})
-	defaults["git.branch"] = System.Branch
 	defaults["language"] = "en"
 	defaults["log.entries.ram"] = 500
 	defaults["mapping.first.channel"] = 1000
@@ -151,7 +150,7 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["ssdp"] = true
 	defaults["storeBufferInRAM"] = true
 	defaults["forceHttps"] = false
-    defaults["excludeStreamHttps"] = false
+	defaults["excludeStreamHttps"] = false
 	defaults["httpsPort"] = 443
 	defaults["httpsThreadfinDomain"] = ""
 	defaults["httpThreadfinDomain"] = ""
@@ -164,10 +163,6 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["uuid"] = createUUID()
 	defaults["udpxy"] = ""
 	defaults["version"] = System.DBVersion
-	defaults["ThreadfinAutoUpdate"] = true
-	if isRunningInContainer() {
-		defaults["ThreadfinAutoUpdate"] = false
-	}
 	defaults["temp.path"] = System.Folder.Temp
 
 	// Default Werte setzen
@@ -181,14 +176,21 @@ func loadSettings() (settings SettingsStruct, err error) {
 		return SettingsStruct{}, err
 	}
 
+	settings.Buffer = normalizeLegacyBufferMode(settings.Buffer)
+	if normalizeLegacyBufferInSettingsMap(settingsMap) {
+		if err = saveMapToJSONFile(System.File.Settings, settingsMap); err != nil {
+			return SettingsStruct{}, err
+		}
+		err = json.Unmarshal([]byte(mapToJSON(settingsMap)), &settings)
+		if err != nil {
+			return SettingsStruct{}, err
+		}
+		settings.Buffer = normalizeLegacyBufferMode(settings.Buffer)
+	}
+
 	// Einstellungen von den Flags übernehmen
 	if len(System.Flag.Port) > 0 {
 		settings.Port = System.Flag.Port
-	}
-
-	if len(System.Flag.Branch) > 0 {
-		settings.Branch = System.Flag.Branch
-		showInfo(fmt.Sprintf("Git Branch:Switching Git Branch to -> %s", settings.Branch))
 	}
 
 	if len(settings.FFmpegPath) == 0 {
@@ -199,8 +201,8 @@ func loadSettings() (settings SettingsStruct, err error) {
 		settings.VLCPath = searchFileInOS("cvlc")
 	}
 
-	// Initialze virutal filesystem for the Buffer
-	initBufferVFS()
+	// Initialize virtual filesystem for the Buffer
+	initBufferVFS(settings.StoreBufferInRAM)
 
 	settings.Version = System.DBVersion
 

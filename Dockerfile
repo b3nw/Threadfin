@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 ARG USE_NVIDIA
 
-FROM golang:1.23-bullseye AS builder
+FROM golang:1.25-bookworm AS builder
 
 WORKDIR /app
 
@@ -34,14 +34,12 @@ ARG THREADFIN_VERSION
 
 LABEL org.label-schema.build-date="${BUILD_DATE}" \
       org.label-schema.name="Threadfin" \
-      org.label-schema.description="Dockerized Threadfin" \
-      org.label-schema.url="https://hub.docker.com/r/fyb3roptik/threadfin/" \
+      org.label-schema.description="Dockerized Threadfin (maintenance fork)" \
       org.label-schema.vcs-ref="${VCS_REF}" \
-      org.label-schema.vcs-url="https://github.com/Threadfin/Threadfin" \
-      org.label-schema.vendor="Threadfin" \
+      org.label-schema.vcs-url="https://github.com/b3nw/Threadfin" \
+      org.label-schema.vendor="b3nw" \
       org.label-schema.version="${THREADFIN_VERSION}" \
-      org.label-schema.schema-version="1.0" \
-      DISCORD_URL="https://discord.gg/bEPPNP2VG8"
+      org.label-schema.schema-version="1.0"
 
 ENV THREADFIN_BIN=/home/threadfin/bin \
     THREADFIN_CONF=/home/threadfin/conf \
@@ -51,7 +49,6 @@ ENV THREADFIN_BIN=/home/threadfin/bin \
     THREADFIN_UID=31337 \
     THREADFIN_GID=31337 \
     THREADFIN_USER=threadfin \
-    THREADFIN_BRANCH=main \
     THREADFIN_DEBUG=0 \
     THREADFIN_PORT=34400 \
     THREADFIN_LOG=/var/log/threadfin.log \

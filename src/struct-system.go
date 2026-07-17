@@ -14,7 +14,6 @@ type SystemStruct struct {
 	AppName                string
 	ARCH                   string
 	BackgroundProcess      bool
-	Branch                 string
 	Build                  string
 	Compatibility          string
 	ConfigurationWizard    bool
@@ -50,7 +49,6 @@ type SystemStruct struct {
 	}
 
 	Flag struct {
-		Branch  string
 		Debug   int
 		Info    bool
 		Port    string
@@ -77,7 +75,6 @@ type SystemStruct struct {
 	Name                   string
 	OS                     string
 	ScanInProgress         int
-	TimeForAutoUpdate      string
 
 	Notification map[string]Notification
 
@@ -89,37 +86,12 @@ type SystemStruct struct {
 		XML string
 	}
 
-	GitHub struct {
-		Branch  string
-		Repo    string
-		Update  bool
-		User    string
-		TagName string
-	}
-
-	Update struct {
-		Git    string
-		Name   string
-		Github string
-	}
-
 	URLBase string
 	UDPxy   string
 	Version string
 	WEB     struct {
 		Menu []string
 	}
-}
-
-// GitStruct : Updateinformationen von GitHub
-type GitStruct struct {
-	Filename string `json:"filename"`
-	Version  string `json:"version"`
-}
-
-type GithubReleaseInfo struct {
-	TagName    string `json:"tag_name"`
-	Prerelease bool   `json:"prerelease"`
 }
 
 // DataStruct : Alle Daten werden hier abgelegt. (Lineup, XMLTV)
@@ -291,7 +263,6 @@ type SettingsStruct struct {
 	AuthenticationXML bool     `json:"authentication.xml"`
 	BackupKeep        int      `json:"backup.keep"`
 	BackupPath        string   `json:"backup.path"`
-	Branch            string   `json:"git.branch,omitempty"`
 	Buffer            string   `json:"buffer"`
 	BufferSize        int      `json:"buffer.size.kb"`
 	BufferTimeout     float64  `json:"buffer.timeout"`
@@ -323,14 +294,12 @@ type SettingsStruct struct {
 	TempPath                  string                `json:"temp.path"`
 	Tuner                     int                   `json:"tuner"`
 	Update                    []string              `json:"update"`
-	UpdateURL                 string                `json:"update.url,omitempty"`
 	UserAgent                 string                `json:"user.agent"`
 	UUID                      string                `json:"uuid"`
 	UDPxy                     string                `json:"udpxy"`
 	Version                   string                `json:"version"`
 	XepgReplaceMissingImages  bool                  `json:"xepg.replace.missing.images"`
 	XepgReplaceChannelTitle   bool                  `json:"xepg.replace.channel.title"`
-	ThreadfinAutoUpdate       bool                  `json:"ThreadfinAutoUpdate"`
 	StoreBufferInRAM          bool                  `json:"storeBufferInRAM"`
 	ForceHttps                bool                  `json:"forceHttps"`
     ExcludeStreamHttps        bool                  `json:"excludeStreamHttps"`
