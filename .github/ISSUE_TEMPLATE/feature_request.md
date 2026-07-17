@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an improvement for this maintenance fork
+about: Suggest an improvement for this Threadfin tree
 title: ''
 labels: enhancement
 assignees: ''
@@ -19,4 +19,4 @@ Other approaches you have thought about.
 **Additional context**
 Screenshots, logs, or related CHANGELOG/migration impact if any.
 
-> Scope note: this fork prioritizes Docker + Plex DVR maintenance. Large new features may be declined if they increase maintenance burden without clear operational value.
+> Scope note: this project prioritizes Docker + Plex DVR maintenance. Large new features may be declined if they increase maintenance burden without clear operational value.

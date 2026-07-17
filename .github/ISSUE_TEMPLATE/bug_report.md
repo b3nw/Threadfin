@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a problem with this Threadfin maintenance fork
+about: Report a problem with this Threadfin tree
 title: ''
 labels: bug
 assignees: ''

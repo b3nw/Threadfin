@@ -2,15 +2,15 @@
   <img width="285" height="80" src="src/html/img/threadfin.png" alt="Threadfin" />
 </div>
 
-# Threadfin (maintenance fork)
+# Threadfin
 
-M3U proxy for **Plex DVR** and Emby/Jellyfin Live TV. Originally based on [xTeVe](https://github.com/xteve-project/xTeVe); this tree is a fork of [Threadfin/Threadfin](https://github.com/Threadfin/Threadfin).
+M3U proxy for **Plex DVR** and Emby/Jellyfin Live TV. Originally based on [xTeVe](https://github.com/xteve-project/xTeVe).
 
-**Upstream is frozen** (maintainer stepped away). This repository is maintained for self-hosted / Docker use. Do not expect binary auto-updates from GitHub.
+The original open-source Threadfin project is unmaintained; its author shifted development to a closed-source product, [Kernel Media](https://kernelmedia.tv/). This repository continues Threadfin as free, self-hosted software (Docker-first). Do not expect binary auto-updates from GitHub.
 
 | Doc | Purpose |
 |-----|---------|
-| [CHANGELOG.md](CHANGELOG.md) | Fork changes, breaking behavior, migration notes |
+| [CHANGELOG.md](CHANGELOG.md) | Changes, breaking behavior, migration notes |
 | [xTeVe configuration guide](https://github.com/xteve-project/xTeVe-Documentation/blob/master/en/configuration.md) | Setup concepts still largely apply |
 
 ## Features
@@ -78,7 +78,7 @@ Web UI: `http://<host>:34400/web/`
 
 Default container entrypoint binds `0.0.0.0` and uses `/home/threadfin/conf` for config.
 
-> Historical Hub image `fyb3roptik/threadfin` and TrueCharts charts track **upstream**, not this fork. Prefer building from this repo.
+> Prefer building from this repository. Third-party Hub images and charts may ship different, unmaintained builds.
 
 ## CLI
 
@@ -93,7 +93,7 @@ Default container entrypoint binds `0.0.0.0` and uses `/home/threadfin/conf` for
 | `-dev` | Serve UI files from `src/html/` (development) |
 | `-h` | Help |
 
-Binary self-update and `-branch` are **not** available in this fork. Deploy a new image or binary to upgrade.
+Binary self-update and `-branch` are **not** available. Deploy a new image or binary to upgrade.
 
 ## Build from source
 
@@ -131,4 +131,4 @@ See **[CHANGELOG.md](CHANGELOG.md)** (Migration notes). Short version:
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Copyright retained from upstream Threadfin / xTeVe lineage.
+MIT — see [LICENSE](LICENSE). Copyright retained from the xTeVe / Threadfin lineage.
