@@ -2,6 +2,17 @@
 # -----------------------------------------------------------------------------
 ARG USE_NVIDIA
 
+# Build the web interface (served at /ui/)
+FROM node:22-alpine AS webui-builder
+
+WORKDIR /app/web
+
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+
+COPY web/ ./
+RUN npm run build
+
 FROM golang:1.23-bullseye AS builder
 
 WORKDIR /app
@@ -12,6 +23,9 @@ RUN go mod download
 
 # Copy the source code
 COPY . .
+
+# Use the freshly built web interface instead of the committed bundle
+COPY --from=webui-builder /app/webui/dist ./webui/dist
 
 # Build the application with optimizations
 RUN CGO_ENABLED=0 go build -mod=mod -ldflags="-s -w" -trimpath -o threadfin threadfin.go

@@ -13,7 +13,10 @@ import (
 	"strconv"
 	"strings"
 
+	"io/fs"
+
 	"threadfin/src/internal/authentication"
+	"threadfin/webui"
 
 	"github.com/gorilla/websocket"
 )
@@ -34,6 +37,10 @@ func StartWebserver() (err error) {
 	http.HandleFunc("/m3u/", Threadfin)
 	http.HandleFunc("/data/", WS)
 	http.HandleFunc("/web/", Web)
+	http.HandleFunc("/ui/", WebUI)
+	http.HandleFunc("/ui", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/ui/", http.StatusMovedPermanently)
+	})
 	http.HandleFunc("/download/", Download)
 	http.HandleFunc("/api/", API)
 	http.HandleFunc("/images/", Images)
@@ -647,6 +654,36 @@ func WS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	return
+}
+
+// WebUI : Web Server /ui/ - serves the embedded single-page interface.
+// Assets are static (no Go templating); unknown paths fall back to
+// index.html so the SPA handles them. Authentication is enforced by the
+// WebSocket endpoint (/data/), same as the legacy interface.
+func WebUI(w http.ResponseWriter, r *http.Request) {
+
+	var requestFile = strings.TrimPrefix(r.URL.Path, "/ui/")
+	if requestFile == "" {
+		requestFile = "index.html"
+	}
+
+	content, err := fs.ReadFile(webui.FS(), requestFile)
+	if err != nil {
+		requestFile = "index.html"
+		content, err = fs.ReadFile(webui.FS(), requestFile)
+		if err != nil {
+			httpStatusError(w, r, 404)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", getContentType(requestFile))
+	if strings.HasPrefix(requestFile, "assets/") {
+		// Vite emits content-hashed filenames; safe to cache aggressively.
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	}
+	w.WriteHeader(200)
+	w.Write(content)
 }
 
 // Web : Web Server /web/
